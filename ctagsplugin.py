@@ -924,7 +924,7 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
     def on_query_completions(self, view, prefix, locations):
         if setting('autocomplete'):
             prefix = prefix.strip().lower()
-            tags_path = view.window().folders()[0] + '/' + setting('tag_file')
+            all_tags_path = [folder + '/' + setting('tag_file') for folder in view.window().folders()]
 
             sub_results = [v.extract_completions(prefix)
                            for v in sublime.active_window().views()]
@@ -938,24 +938,28 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
 
                 return results
             else:
+                print("Checking CTags for completion request")
+                ctag_file_count = 0
+
                 tags = []
 
-                # check if a project is open and the tags file exists
-                if not (view.window().folders() and os.path.exists(tags_path)):
-                    return tags
+                for tags_path in all_tags_path:
+                    if os.path.exists(tags_path):
 
-                if sublime.platform() == "windows":
-                    prefix = ""
-                else:
-                    prefix = "\\"
+                        if sublime.platform() == "windows":
+                            prefix = ""
+                        else:
+                            prefix = "\\"
 
-                f = os.popen("awk \"{ print "+prefix+"$1 }\" \"" + tags_path + "\"")
+                        f = open(tags_path, "r")
 
-                for i in f.readlines():
-                    tags.append([i.strip()])
-
+                        for i in f:
+                            line = i.strip()
+                            line = line.split()[0]
+                            tags.append([line.strip()])
+                
                 tags = [(item, item) for sublist in tags
-                        for item in sublist]  # flatten
+                         for item in sublist]  # flatten
                 tags = sorted(set(tags))  # make unique
                 GetAllCTagsList.ctags_list = tags
                 results = [sublist for sublist in GetAllCTagsList.ctags_list
