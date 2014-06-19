@@ -938,9 +938,6 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
 
                 return results
             else:
-                print("Checking CTags for completion request")
-                ctag_file_count = 0
-
                 tags = []
 
                 for tags_path in all_tags_path:
@@ -968,76 +965,3 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
                 results.sort()
 
                 return results
-
-
-"""Test CTags commands"""
-
-
-class TestCtags(sublime_plugin.TextCommand):
-    routine = None
-
-    def run(self, edit, **args):
-        if self.routine is None:
-            self.routine = self.co_routine(self.view)
-            next(self.routine)
-
-    def __next__(self):
-        try:
-            next(self.routine)
-        except Exception as e:
-            print(e)
-            self.routine = None
-
-    def co_routine(self, view):
-        tag_file = find_tags_relative_to(
-            view.file_name(), setting('tag_file'))
-
-        with codecs.open(tag_file, encoding='utf-8') as tf:
-            tags = parse_tag_lines(tf, tag_class=TagElements)
-
-        print('Starting Test')
-
-        ex_failures = []
-        line_failures = []
-
-        for symbol, tag_list in list(tags.items()):
-            for tag in tag_list:
-                tag.root_dir = os.path.dirname(tag_file)
-
-                def hook(av):
-                    test_context = av.sel()[0]
-
-                    if tag.ex_command.isdigit():
-                        test_string = tag.symbol
-                    else:
-                        test_string = tag.ex_command
-                        test_context = av.line(test_context)
-
-                    if not av.substr(test_context).startswith(test_string):
-                        failure = 'FAILURE %s' % pprint.pformat(tag)
-                        failure += av.file_name()
-
-                        if setting('debug'):
-                            if not sublime.question_box('%s\n\n\n' % failure):
-                                self.routine = None
-
-                            return sublime.set_clipboard(failure)
-                        ex_failures.append(tag)
-                    sublime.set_timeout(self.__next__, 5)
-                scroll_to_tag(view, tag, hook)
-                yield
-
-        failures = line_failures + ex_failures
-        tags_tested = sum(len(v) for v in list(tags.values())) - len(failures)
-
-        view = sublime.active_window().new_file()
-
-        with Edit(view) as edit:
-            edit.insert(view.size(), '%s Tags Tested OK\n' % tags_tested)
-            edit.insert(view.size(), '%s Tags Failed' % len(failures))
-
-        view.set_scratch(True)
-        view.set_name('CTags Test Results')
-
-        if failures:
-            sublime.set_clipboard(pprint.pformat(failures))
