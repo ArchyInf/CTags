@@ -74,8 +74,9 @@ class ctags_access_merge(sublime_plugin.TextCommand):
 
         outfile = os.path.join(view.window().folders()[0], ".tagsmaster")
         self.create_ctags_file(tags, outfile, SYMBOL)
+        self.create_ctags_file(tags, outfile + "_sorted_by_file", FILENAME, SYMBOL)
 
-    def create_ctags_file(self, tags, path, sort):
+    def create_ctags_file(self, tags, path, sort, sort2 = None):
         print("Creating new tags file", path, "containing", len(tags), "tags")
         target_folder = os.sep.join(path.split(os.sep)[:-1])
         # update entry paths to be relative to the new tag file
@@ -83,7 +84,10 @@ class ctags_access_merge(sublime_plugin.TextCommand):
             tag[FILENAME] = self.make_relative_when_better(tag[FILENAME], target_folder)
 
         def get_sort_key(tag):
-            return tag[sort]
+            if sort2 == None:
+                return tag[sort]
+            else:
+                return tag[sort] + ":" + tag[sort2]
 
         tags = sorted(tags, key=get_sort_key)
         with open(path, "w+") as f:
