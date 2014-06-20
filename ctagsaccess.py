@@ -142,26 +142,3 @@ def check_search_paths(paths):
             ret.append(p)
     return ret
 
-
-def find_tags_relative_to(path, tag_file):
-    """Find the tagfile relative to a file path.
-
-    :param path: path to a file
-    :param tag_file: name of tag file
-
-    :returns: path of deepest tag file with name of ``tag_file``
-    """
-    if not path:
-        return None
-
-    dirs = os.path.dirname(os.path.normpath(path)).split(os.path.sep)
-
-    while dirs:
-        joined = os.path.sep.join(dirs + [tag_file])
-
-        if os.path.exists(joined) and not os.path.isdir(joined):
-            return joined
-        else:
-            dirs.pop()
-
-    return None
