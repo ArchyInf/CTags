@@ -957,7 +957,7 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
                        for item in sublist]  # flatten
 
         if not GetAllCTagsList.ctags_list:
-            cache_ctags()
+            self.cache_ctags()
 
         if not GetAllCTagsList.ctags_list:
             return sorted(sub_results)
