@@ -55,6 +55,48 @@ class ctags_access_test(sublime_plugin.TextCommand):
     		print(path)
 
 
+class ctags_access_merge(sublime_plugin.TextCommand):
+	def run(self, edit, **args):
+		# todo: use mmap
+		tags = []
+
+		view = self.view
+		tag_files = collect_project_tag_files(view)
+		print("Found", len(tag_files), "tag files")
+		for path in tag_files:
+			folder = os.sep.join(path.split(os.sep)[:-1])
+			# column not important; merge creates a new file that is sorted
+			with TagFile(path, SYMBOL) as f:
+				for tag in f.search():
+					if not tag[SYMBOL].startswith("!"):
+						tag[FILENAME] = self.make_absolute(tag[FILENAME], folder)
+						tags.append(tag)
+
+		outfile = os.path.join(view.window().folders()[0], ".tagsmaster")
+		self.create_ctags_file(tags, outfile)
+
+	def create_ctags_file(self, tags, path):
+		print("Creating new tags file", path, "containing", len(tags), "tags")
+
+		target_folder = os.sep.join(path.split(os.sep)[:-1])
+		# update entry paths to be relative to the new tag file
+		for tag in tags:
+			tag[FILENAME] = self.make_relative_if_possible(tag[FILENAME], target_folder)
+
+		tags = sorted(tags)
+		with open(path, "w+") as f:
+			# write header
+			# write entries
+			f.writelines([tag.line + "\n" for tag in tags])
+
+	def make_absolute(self, path, root):
+		return os.path.abspath(os.path.join(root, path))
+
+	def make_relative_if_possible(self, path, topath):
+		if os.path.splitdrive(path)[0] == os.path.splitdrive(topath)[0]:
+			return os.path.relpath(path, topath)
+		return path
+		
 def collect_project_tag_files(view):
 	tag_files = []
 
