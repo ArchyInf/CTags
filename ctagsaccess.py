@@ -67,33 +67,40 @@ class ctags_access_merge(sublime_plugin.TextCommand):
             # column not important; merge creates a new file that is sorted
             with TagFile(path, SYMBOL) as f:
                 for tag in f.search():
+                    # remove headers
                     if not tag[SYMBOL].startswith("!"):
                         tag[FILENAME] = self.make_absolute(tag[FILENAME], folder)
                         tags.append(tag)
 
         outfile = os.path.join(view.window().folders()[0], ".tagsmaster")
-        self.create_ctags_file(tags, outfile)
+        self.create_ctags_file(tags, outfile, SYMBOL)
 
-    def create_ctags_file(self, tags, path):
+    def create_ctags_file(self, tags, path, sort):
         print("Creating new tags file", path, "containing", len(tags), "tags")
-
         target_folder = os.sep.join(path.split(os.sep)[:-1])
         # update entry paths to be relative to the new tag file
         for tag in tags:
-            tag[FILENAME] = self.make_relative_if_possible(tag[FILENAME], target_folder)
+            tag[FILENAME] = self.make_relative_when_better(tag[FILENAME], target_folder)
 
-        tags = sorted(tags)
+        def get_sort_key(tag):
+            return tag[sort]
+
+        tags = sorted(tags, key=get_sort_key)
         with open(path, "w+") as f:
             # write header
+            f.write("!_TAG_FILE_FORMAT   2\n")
+            f.write("!_TAG_FILE_SORTED   {}\n".format(sort+1))
             # write entries
             f.writelines([tag.line + "\n" for tag in tags])
 
     def make_absolute(self, path, root):
         return os.path.abspath(os.path.join(root, path))
 
-    def make_relative_if_possible(self, path, topath):
+    def make_relative_when_better(self, path, topath):
         if os.path.splitdrive(path)[0] == os.path.splitdrive(topath)[0]:
-            return os.path.relpath(path, topath)
+            relpath = os.path.relpath(path, topath)
+            if len(relpath) < len(path):
+                return relpath
         return path
         
 def collect_project_tag_files(view):
