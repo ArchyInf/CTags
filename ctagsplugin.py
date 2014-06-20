@@ -828,18 +828,21 @@ class RebuildTags(sublime_plugin.TextCommand):
 
             tags_built(result)
 
-        GetAllCTagsList.ctags_list = []  # clear the cached ctags list
+        # clear the cached ctags list
+        GetAllCTagsList.set_ctags_list(view, None)
 
 
 """Autocomplete commands"""
-
-
 class GetAllCTagsList():
-    ctags_list = []
+    ctags_list = {}
 
-    """cache all the ctags list"""
-    def __init__(self, list):
-        self.ctags_list = list
+    def get_ctags_list(view):
+        if view.window().id() in GetAllCTagsList.ctags_list:
+            return GetAllCTagsList.ctags_list[view.window().id()]
+        return []
+
+    def set_ctags_list(view, value):
+        GetAllCTagsList.ctags_list[view.window().id()] = value
 
 
 class CTagsAutoComplete(sublime_plugin.EventListener):
@@ -865,7 +868,9 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
         tags = [(item, item) for sublist in tags
                  for item in sublist]  # flatten
         tags = sorted(set(tags))  # make unique
-        GetAllCTagsList.ctags_list = tags
+        GetAllCTagsList.set_ctags_list(view, tags)
+
+        print("Created ctags cache with", len(tags), "entries")
 
     def on_query_completions(self, view, prefix, locations):
         if not setting('autocomplete'):
@@ -878,12 +883,13 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
         sub_results = [(item, item) for sublist in sub_results
                        for item in sublist]  # flatten
 
-        if not GetAllCTagsList.ctags_list:
+        if not GetAllCTagsList.get_ctags_list(view):
             self.cache_ctags(view)
 
-        if not GetAllCTagsList.ctags_list:
+        if not GetAllCTagsList.get_ctags_list(view):
             return sorted(sub_results)
 
-        results = [sublist for sublist in GetAllCTagsList.ctags_list
+        results = [sublist for sublist in GetAllCTagsList.get_ctags_list(view)
                    if sublist[0].lower().startswith(prefix)]
         return sorted(set(results).union(set(sub_results)))
+ 
