@@ -79,7 +79,7 @@ class ctags_access_merge(sublime_plugin.TextCommand):
             if sort2 == None:
                 return tag[sort]
             else:
-                return tag[sort] + ":" + tag[sort2]
+                return (tag[sort], tag[sort2])
 
         tags = sorted(tags, key=get_sort_key)
         with open(path, "w+") as f:
