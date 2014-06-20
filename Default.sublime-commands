@@ -1,6 +1,5 @@
 [
   {
-  {
     "caption": "CTags: merge ctags files",
     "command": "ctags_access_merge"
   },

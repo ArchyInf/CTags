@@ -46,14 +46,6 @@ def get_setting(key, default=None):
 setting = get_setting
 
 
-class ctags_access_test(sublime_plugin.TextCommand):
-    def run(self, edit, **args):
-        view = self.view
-        tag_files = collect_project_tag_files(view)
-        print("Found", len(tag_files), "tag files")
-        for path in tag_files:
-            print(path)
-
 class ctags_access_merge(sublime_plugin.TextCommand):
     def run(self, edit, **args):
         # todo: use mmap
