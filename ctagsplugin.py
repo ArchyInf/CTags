@@ -921,7 +921,7 @@ class GetAllCTagsList():
 
 
 class CTagsAutoComplete(sublime_plugin.EventListener):
-    def cache_ctags():
+    def cache_ctags(self, view):
         tags = []
 
         all_tags_path = [folder + '/' + setting('tag_file') for folder in view.window().folders()]
