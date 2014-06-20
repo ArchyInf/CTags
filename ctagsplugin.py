@@ -207,85 +207,6 @@ def on_load(path=None, window=None, encoded_row_col=True, begin_edit=False):
     return wrapper
 
 
-def find_tags_relative_to(path, tag_file):
-    """Find the tagfile relative to a file path.
-
-    :param path: path to a file
-    :param tag_file: name of tag file
-
-    :returns: path of deepest tag file with name of ``tag_file``
-    """
-    if not path:
-        return None
-
-    dirs = os.path.dirname(os.path.normpath(path)).split(os.path.sep)
-
-    while dirs:
-        joined = os.path.sep.join(dirs + [tag_file])
-
-        if os.path.exists(joined) and not os.path.isdir(joined):
-            return joined
-        else:
-            dirs.pop()
-
-    return None
-
-
-def get_alternate_tags_paths(view, tags_file):
-    """Search for additional tag files.
-
-    Search for additional tag files to use, including those define by a
-    ``search_paths`` file, the ``extra_tag_path`` setting and the
-    ``extra_tag_files`` setting. This is mostly used for including library tag
-    files.
-
-    :param view: sublime text view
-    :param tags_file: path to a tag file
-
-    :returns: list of valid, existing paths to additional tag files to search
-    """
-    tags_paths = '%s_search_paths' % tags_file
-    search_paths = [tags_file]
-
-    # read and add additional tag file paths from file
-    if os.path.exists(tags_paths):
-        search_paths.extend(
-            codecs.open(tags_paths, encoding='utf-8').read().split('\n'))
-
-    # read and add additional tag file paths from 'extra_tag_paths' setting
-    try:
-        for (selector, platform), path in setting('extra_tag_paths'):
-            if view.match_selector(view.sel()[0].begin(), selector):
-                if sublime.platform() == platform:
-                    search_paths.append(os.path.join(path, setting('tag_file')))
-    except Exception as e:
-        print(e)
-
-    if os.path.exists(tags_paths):
-        for extrafile in setting('extra_tag_files'):
-            search_paths.append(
-                os.path.normpath(
-                    os.path.join(os.path.dirname(tags_file), extrafile)))
-
-    # ok, didn't find the tags file under the viewed file.
-    # let's look in the currently opened folder
-    for folder in view.window().folders():
-        search_paths.append(
-            os.path.normpath(
-                os.path.join(folder, setting('tag_file'))))
-        for extrafile in setting('extra_tag_files'):
-            search_paths.append(
-                os.path.normpath(
-                    os.path.join(folder, extrafile)))
-
-    # use list instead of set  for keep order
-    ret = []
-    for p in search_paths:
-        if p and (p not in ret) and os.path.exists(p):
-            ret.append(p)
-    return ret
-
-
 def get_common_ancestor_folder(path, folders):
     """Get common ancestor for a file and a list of folders.
 
@@ -589,6 +510,9 @@ def show_tag_panel(view, result, jump_directly):
             view.window().show_quick_panel(display, on_select)
 
 
+def get_master_ctags(view):
+    return os.path.join(view.window().folders()[0], ".tagsmaster")
+
 def ctags_goto_command(jump_directly=False):
     """Decorator to goto a ctag entry.
 
@@ -597,8 +521,7 @@ def ctags_goto_command(jump_directly=False):
     def wrapper(f):
         def command(self, edit, **args):
             view = self.view
-            tags_file = find_tags_relative_to(
-                view.file_name(), setting('tag_file'))
+            tags_file = get_master_ctags(view)
 
             if not tags_file:
                 status_message('Can\'t find any relevant tags file')
@@ -645,12 +568,12 @@ class JumpToDefinition:
     @staticmethod
     def run(symbol, view, tags_file):
         tags = {}
-        for tags_file in get_alternate_tags_paths(view, tags_file):
-            with TagFile(tags_file, SYMBOL) as tagfile:
-                tags = tagfile.get_tags_dict(
-                    symbol, filters=compile_filters(view))
-            if tags:
-                break
+        if tags_file == None:
+            return status_message("No master ctags file")
+
+        with TagFile(tags_file, SYMBOL) as tagfile:
+            tags = tagfile.get_tags_dict(
+                symbol, filters=compile_filters(view))
 
         if not tags:
             return status_message('Can\'t find "%s"' % symbol)
@@ -725,8 +648,7 @@ class SearchForDefinition(sublime_plugin.WindowCommand):
 
     def on_done(self, symbol):
         view = self.window.active_view()
-        tags_file = find_tags_relative_to(
-            view.file_name(), setting('tag_file'))
+        tags_file = get_master_ctags(view)
 
         if not tags_file:
             status_message('Can\'t find any relevant tags file')
@@ -881,8 +803,8 @@ class RebuildTags(sublime_plugin.TextCommand):
                                            .format(tag_file)))()
             in_main(lambda: tags_cache[os.path.dirname(tag_file)].clear())()
 
-        for path in paths:
-            tags_building(path)
+            for path in paths:
+                tags_building(path)
 
             try:
                 result = ctags.build_ctags(path=path, tag_file=tag_file,
@@ -924,7 +846,7 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
     def cache_ctags(self, view):
         tags = []
 
-        all_tags_path = [folder + '/' + setting('tag_file') for folder in view.window().folders()]
+        all_tags_path = [get_master_ctags(view)]
         for tags_path in all_tags_path:
             if os.path.exists(tags_path):
 
@@ -957,7 +879,7 @@ class CTagsAutoComplete(sublime_plugin.EventListener):
                        for item in sublist]  # flatten
 
         if not GetAllCTagsList.ctags_list:
-            self.cache_ctags()
+            self.cache_ctags(view)
 
         if not GetAllCTagsList.ctags_list:
             return sorted(sub_results)
