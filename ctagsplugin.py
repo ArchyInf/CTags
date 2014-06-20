@@ -479,6 +479,7 @@ def show_build_panel(view):
             opts = setting('opts')
 
             rebuild_tags = RebuildTags(False)
+            rebuild_tags.view = view
             rebuild_tags.build_ctags(paths, command, tag_file, recursive, opts)
 
     view.window().show_quick_panel(display, on_select)
@@ -744,8 +745,6 @@ class ShowSymbols(sublime_plugin.TextCommand):
 
 
 """Rebuild CTags commands"""
-
-
 class RebuildTags(sublime_plugin.TextCommand):
     """Provider for the ``rebuild_tags`` command.
 
@@ -775,6 +774,7 @@ class RebuildTags(sublime_plugin.TextCommand):
             return
         else:
             show_build_panel(self.view)
+
 
     @threaded(msg='Already running CTags!')
     def build_ctags(self, paths, command, tag_file, recursive, opts):
@@ -829,7 +829,7 @@ class RebuildTags(sublime_plugin.TextCommand):
             tags_built(result)
 
         # clear the cached ctags list
-        GetAllCTagsList.set_ctags_list(view, None)
+        GetAllCTagsList.set_ctags_list(self.view, None)
 
 
 """Autocomplete commands"""
