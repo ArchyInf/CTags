@@ -396,6 +396,9 @@ class Tag(object):
         self.line = line
         self.column = column
 
+    def __cmp__(self, other):
+        return self[self.column].__cmp__(other[self.column]);
+
     def __lt__(self, other):
         return self.line.split('\t')[self.column] < other
 
@@ -404,6 +407,11 @@ class Tag(object):
 
     def __getitem__(self, index):
         return self.line.split('\t')[index]
+
+    def __setitem__(self, index, value):
+        parts = self.line.split('\t')
+        parts[index] = value
+        self.line = '\t'.join(parts)
 
 
 class TagFile(object):
