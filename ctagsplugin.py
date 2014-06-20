@@ -829,6 +829,7 @@ class RebuildTags(sublime_plugin.TextCommand):
             tags_built(result)
 
         # clear the cached ctags list
+        self.view.run_command('ctags_access_merge')
         GetAllCTagsList.set_ctags_list(self.view, None)
 
 
