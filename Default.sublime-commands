@@ -1,5 +1,10 @@
 [
   {
+  {
+    "caption": "CTags: merge ctags files",
+    "command": "ctags_access_merge"
+  },
+  {
     "caption": "CTags: Rebuild Tags",
     "command": "rebuild_tags"
   },
