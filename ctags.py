@@ -267,7 +267,7 @@ def create_tag_path(tag):
 
 
 def build_ctags(path, tag_file=None, recursive=False, opts=None, cmd=None,
-                env=None):
+                env=None, stdout=False):
     """Execute the ``ctags`` command using ``Popen``
 
     :param path: path to file or directory (with all files) to generate
@@ -277,6 +277,7 @@ def build_ctags(path, tag_file=None, recursive=False, opts=None, cmd=None,
         given by path. This overrides filename specified by ``path``
     :param opts: list of additional options to pass to the ctags executable
     :param env: environment variables to be used when executing ``ctags``
+    :param stdout: use stdout of command instead of -f parameter
 
     :returns: original ``tag_file`` filename
     """
@@ -295,7 +296,7 @@ def build_ctags(path, tag_file=None, recursive=False, opts=None, cmd=None,
     else:
         cwd = path
 
-    if tag_file:
+    if tag_file and not stdout:
         cmd.append('-f {0}'.format(tag_file))
 
     if opts:
@@ -318,7 +319,7 @@ def build_ctags(path, tag_file=None, recursive=False, opts=None, cmd=None,
         cmd = ' '.join(cmd)
 
     # execute the command
-    check_output(cmd, cwd=cwd, shell=True, env=env, stdin=subprocess.PIPE,
+    output = check_output(cmd, cwd=cwd, shell=True, env=env, stdin=subprocess.PIPE,
                  stderr=subprocess.STDOUT)
 
     if not tag_file:  # Exuberant ctags defaults to ``tags`` filename.
@@ -326,6 +327,10 @@ def build_ctags(path, tag_file=None, recursive=False, opts=None, cmd=None,
     else:
         if os.path.dirname(tag_file) != cwd:
             tag_file = os.path.join(cwd, tag_file)
+
+    if stdout:
+        with open(tag_file, "wb") as f:
+            f.write(output)
 
     # re-sort ctag file in filename order to improve search performance
     resort_ctags(tag_file)

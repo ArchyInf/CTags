@@ -477,10 +477,11 @@ def show_build_panel(view):
             recursive = setting('recursive')
             tag_file = setting('tag_file')
             opts = setting('opts')
+            stdout = setting('stdout')
 
             rebuild_tags = RebuildTags(False)
             rebuild_tags.view = view
-            rebuild_tags.build_ctags(paths, command, tag_file, recursive, opts)
+            rebuild_tags.build_ctags(paths, command, tag_file, recursive, opts, stdout)
 
     view.window().show_quick_panel(display, on_select)
 
@@ -759,15 +760,16 @@ class RebuildTags(sublime_plugin.TextCommand):
         recursive = setting('recursive')
         opts = setting('opts')
         tag_file = setting('tag_file')
+        stdout = setting('stdout')
 
         if 'dirs' in args and args['dirs']:
             paths.extend(args['dirs'])
-            self.build_ctags(paths, command, tag_file, recursive, opts)
+            self.build_ctags(paths, command, tag_file, recursive, opts, stdout)
         elif 'files' in args and args['files']:
             paths.extend(args['files'])
             # build ctags and ignore recursive flag - we clearly only want
             # to build them for a file
-            self.build_ctags(paths, command, tag_file, False, opts)
+            self.build_ctags(paths, command, tag_file, False, opts, stdout)
         elif (self.view.file_name() is None and
                 len(self.view.window().folders()) <= 0):
             status_message('Cannot build CTags: No file or folder open.')
@@ -777,7 +779,7 @@ class RebuildTags(sublime_plugin.TextCommand):
 
 
     @threaded(msg='Already running CTags!')
-    def build_ctags(self, paths, command, tag_file, recursive, opts):
+    def build_ctags(self, paths, command, tag_file, recursive, opts, stdout):
         """Build tags for the open file or folder(s)
 
         :param paths: paths to build ctags for
@@ -787,6 +789,7 @@ class RebuildTags(sublime_plugin.TextCommand):
             given by path. This overrides filename specified by ``path``
         :param opts: list of additional parameters to pass to the ``ctags``
             executable
+        :param stdout: use command output to stdout instead of -f
 
         :returns: None
         """
@@ -809,7 +812,7 @@ class RebuildTags(sublime_plugin.TextCommand):
             try:
                 result = ctags.build_ctags(path=path, tag_file=tag_file,
                                            recursive=recursive, opts=opts,
-                                           cmd=command)
+                                           cmd=command, stdout=stdout)
             except IOError as e:
                 error_message(e.strerror)
                 return

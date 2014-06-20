@@ -28,6 +28,10 @@
     // ["--exclude=some/path", "--exclude=some/other/path", ...]
     "opts" : [],
 
+    // Use stdout of command instead of -f parameter. Useful to support various
+    // ctags generation tools, eg dscanner for dlang
+    "stdout" : false,
+
     //
     "filters": {
         "source.python": {"type":"^i$"}
