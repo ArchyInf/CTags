@@ -803,8 +803,8 @@ class RebuildTags(sublime_plugin.TextCommand):
                                            .format(tag_file)))()
             in_main(lambda: tags_cache[os.path.dirname(tag_file)].clear())()
 
-            for path in paths:
-                tags_building(path)
+        for path in paths:
+            tags_building(path)
 
             try:
                 result = ctags.build_ctags(path=path, tag_file=tag_file,
